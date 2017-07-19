@@ -7,6 +7,8 @@ try:
 except:
     import simplejson as json
 
+import config
+
 # import pyglet
 #
 # window = pyglet.window.Window()
@@ -33,25 +35,49 @@ except:
 #     "auth": null
 # }
 
+def getZabbixData():
+    zabbix_data = {}
+    zabbix_data["jsonrpc"] = "2.0"
+    zabbix_data["method"] = "user.login"
+    zabbix_data["id"] = 1
+
+    return zabbix_data
+
 def zbxLogin(url, login, passwd):
     if login and passwd:
+        zabbix_data = getZabbixData()
+
         logindata = {}
         logindata["user"] = login
         logindata["password"] = passwd
-        data = {}
-        data["jsonrpc"] = "2.0"
-        data["method"] = "user.login"
-        data["params"] = logindata
-        data["id"] = 1
-        json_data = json.dumps(data)
+        zabbix_data["params"] = logindata
+        zabbix_data["method"] = "user.login"
+        json_data = json.dumps(zabbix_data)
 
     r = urllib2.Request(url, json_data, {'Content-Type': 'application/json-rpc'})
     d = urllib2.urlopen(r).read()
     parsed_json = json.loads(d)
     return parsed_json["result"]
 
-authId = zbxLogin("http://zabbix-prod.psrv4.citronium.com/zabbix/api_jsonrpc.php", "mmamaev", "j3qq4h7h2v")
+def zbxHosts(url, authId):
+    zabbix_data = getZabbixData()
 
-print authId
+    params = {}
+    params["output"] = ["hostid", "host"]
+    zabbix_data["params"] = params
+    zabbix_data["method"] = "host.get"
+    zabbix_data["auth"] = authId
+    json_data = json.dumps(zabbix_data)
+
+    r = urllib2.Request(url, json_data, {'Content-Type': 'application/json-rpc'})
+    d = urllib2.urlopen(r).read()
+    parsed_json = json.loads(d)
+    return parsed_json["result"]
+
+zabbix_authId = zbxLogin(config.zabbix_host, config.zabbix_username, config.zabbix_password)
+
+zabbix_hosts = zbxHosts(config.zabbix_host, zabbix_authId)
+
+print zabbix_hosts
 
 # pyglet.app.run()
