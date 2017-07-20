@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import urllib2, base64, re, struct, time, socket, sys, datetime, os.path, requests
+import urllib2
 
 try:
     import json
