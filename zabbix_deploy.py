@@ -35,12 +35,13 @@ import config
 #     "auth": null
 # }
 
+
 def getZabbixData():
     zabbix_data = {}
     zabbix_data["jsonrpc"] = "2.0"
     zabbix_data["method"] = "user.login"
     zabbix_data["id"] = 1
-
+    zabbix_data["auth"] = config.zabbix_authId
     return zabbix_data
 
 def zbxLogin(url, login, passwd):
@@ -59,14 +60,13 @@ def zbxLogin(url, login, passwd):
     parsed_json = json.loads(d)
     return parsed_json["result"]
 
-def zbxHosts(url, authId):
+def zbxHosts(url):
     zabbix_data = getZabbixData()
 
     params = {}
     params["output"] = ["hostid", "host"]
     zabbix_data["params"] = params
     zabbix_data["method"] = "host.get"
-    zabbix_data["auth"] = authId
     json_data = json.dumps(zabbix_data)
 
     r = urllib2.Request(url, json_data, {'Content-Type': 'application/json-rpc'})
@@ -74,10 +74,37 @@ def zbxHosts(url, authId):
     parsed_json = json.loads(d)
     return parsed_json["result"]
 
-zabbix_authId = zbxLogin(config.zabbix_host, config.zabbix_username, config.zabbix_password)
+def zbxCreateHost(url):
+    zabbix_data = getZabbixData()
 
-zabbix_hosts = zbxHosts(config.zabbix_host, zabbix_authId)
+    params = {}
+    params["host"] = "New Server"
+    params["interfaces"] = [{
+            "type": 1,
+            "main": 1,
+            "useip": 1,
+            "ip": "192.168.3.1",
+            "dns": "",
+            "port": "10050"
+        }]
+    params["groups"] = [ { "groupid": "2" } ]
+    params["templates"] = [ { "templateid": "10001" } ]
+    zabbix_data["params"] = params
+    zabbix_data["method"] = "host.create"
+    json_data = json.dumps(zabbix_data)
+
+    r = urllib2.Request(url, json_data, {'Content-Type': 'application/json-rpc'})
+    d = urllib2.urlopen(r).read()
+    parsed_json = json.loads(d)
+    return parsed_json["result"]
+
+
+config.zabbix_authId = zbxLogin(config.zabbix_host, config.zabbix_username, config.zabbix_password)
+
+zabbix_hosts = zbxHosts(config.zabbix_host)
+zabbix_newhost = zbxCreateHost(config.zabbix_host)
 
 print zabbix_hosts
+print zabbix_newhost
 
 # pyglet.app.run()
